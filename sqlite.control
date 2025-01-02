@@ -1,0 +1,5 @@
+# sqlite extension
+comment = 'In-Memory SQLite DBs as expanded data types.'
+default_version = '0.0.1'
+relocatable = true
+requires = ''

@@ -145,8 +145,6 @@ new_expanded_sqlite(sqlite_FlatSqlite *flat, MemoryContext parentcontext, sqlite
 	return db;
 }
 
-/* MemoryContextCallback function to free sqlite data when their
-   context goes out of scope. */
 static void
 sqlite_free_context_callback(void* ptr) {
 	sqlite_Sqlite *db = (sqlite_Sqlite *) ptr;
@@ -154,9 +152,6 @@ sqlite_free_context_callback(void* ptr) {
 	sqlite3_close(db->db);
 }
 
-/* Helper function to always expanded datum
-
-   This is used by SQLITE_GETARG */
 sqlite_Sqlite *
 DatumGetSqlite(Datum d) {
 	sqlite_Sqlite *db;
@@ -200,7 +195,6 @@ sqlite_in(PG_FUNCTION_ARGS) {
 }
 
 int asi_callback(const char *str, void *sinfo);
-
 int asi_callback(const char *str, void *sinfo)
 {
 	appendStringInfo(*(StringInfo*)sinfo, "%s", str);

@@ -23,13 +23,9 @@ sqlite_query(PG_FUNCTION_ARGS) {
         MemoryContext oldcontext;
         funcctx = SRF_FIRSTCALL_INIT();
 
-        // Switch memory context
         oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
-
-        // Initialize SQLite connection
         query_state = (SqliteQueryState *) palloc(sizeof(SqliteQueryState));
 
-        // Prepare the SQLite query
         query_state->db = SQLITE_GETARG(0)->db;
         query = text_to_cstring(PG_GETARG_TEXT_PP(1));
 
@@ -37,7 +33,6 @@ sqlite_query(PG_FUNCTION_ARGS) {
             ereport(ERROR, (errmsg("Failed to prepare SQLite query: %s", sqlite3_errmsg(query_state->db))));
 
         funcctx->user_fctx = query_state;
-
         column_count = sqlite3_column_count(query_state->stmt);
 
 		if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
@@ -55,7 +50,6 @@ sqlite_query(PG_FUNCTION_ARGS) {
     query_state = (SqliteQueryState *) funcctx->user_fctx;
     column_count = sqlite3_column_count(query_state->stmt);
 
-    // Fetch the next SQLite row
     if (sqlite3_step(query_state->stmt) == SQLITE_ROW) {
         Datum *values = palloc0(column_count * sizeof(Datum));
         bool *nulls = palloc0(column_count * sizeof(bool));
@@ -81,7 +75,6 @@ sqlite_query(PG_FUNCTION_ARGS) {
         tuple = heap_form_tuple(tupdesc, values, nulls);
         SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
     } else {
-        // Clean up SQLite resources
         sqlite3_finalize(query_state->stmt);
         SRF_RETURN_DONE(funcctx);
     }

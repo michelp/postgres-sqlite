@@ -1,27 +1,34 @@
 # postgres-sqlite
 
-`postgres-sqlite` is a PostgreSQL extension that adds sqlite databases
-as a first class data type for Postgres databases.
+`postgres-sqlite` is a PostgreSQL extension that introduces SQLite
+databases as a first-class data type within PostgreSQL.
 
-Using a combination of the Postgres "exapnded datum" API and the
-sqlite3 serialize/deserialize API, postgres-sqlite can be used to
-create and store small (up to 1GB) sqlite databases in postgres tables
-very efficiently by taking advantage of compressed TOAST storage using
-sqlite's native serialization API. Accordingly, postgres-sqlite does
-not require any access to the server's filesytem, all sqlite databases
-are stored directly in Postgres tables.
+By leveraging the PostgreSQL "expanded datum" API and SQLite's
+`sqlite3_serialize`/`sqlite3_deserialize` APIs, `postgres-sqlite`
+enables the efficient creation and storage of small SQLite databases
+(up to 1GB) directly within PostgreSQL tables. This efficiency is
+achieved through PostgreSQL's compressed TOAST storage in conjunction
+with SQLite's native serialization API. Importantly, `postgres-sqlite`
+does not require filesystem access—SQLite databases are fully managed
+within PostgreSQL tables.
 
-This is very useful for multitenancy, since these mini sqlite
-databases inside Postgres are completely isolated from the Postgres
-database around them, no special RLS policies, permissions, or other
-traditional complications of multitenancy are needed to keep isolated
-customer data in separate rows.
+### Key Advantages
 
-Another useful use case is using this tool in conjunction with the
-official sqlite-wasm build to store client side data on your server.
-To synchronize client and server data simply exchange the objects as
-the native SQL text format, or the standard sqlite binary format with
-sqlite_serialize()/sqlite_deserialize().
+#### Multitenancy
+`postgres-sqlite` simplifies multitenancy by embedding isolated SQLite
+databases directly into PostgreSQL. Each SQLite database is entirely
+independent from its surrounding PostgreSQL environment, eliminating
+the need for complex RLS policies, permissions, or other traditional
+multitenancy mechanisms. This allows customer data to be securely
+stored in separate rows without additional configuration.
+
+#### Client-Server Synchronization
+Another powerful use case is pairing `postgres-sqlite` with the
+official SQLite Wasm (WebAssembly) build to synchronize client-side
+and server-side data. You can seamlessly exchange data between client
+and server using either SQLite’s native SQL text format or the
+standard binary format via `sqlite_serialize()` and
+`sqlite_deserialize()`.
 
 ## Creating SQLite Databases
 
@@ -49,16 +56,19 @@ SELECT 'CREATE TABLE user_config (key text, value text)'::sqlite;
 (1 row)
 ```
 
-Note that while you are seeing the SQL text representation of the
-sqlite object, it is stored internally in the database as a binary
-serialized representation of an in-memory sqlite database.  When the
-sqlite database is accessed, it is automatically "expanded" from the
-on-disk binary representation to a live sqlite database.
+Note that while you are *seeing* the SQL text representation of the
+sqlite object, it is stored internally in Postgres as a compact binary
+representation of an in-memory sqlite database.  When the sqlite
+database is accessed, it is automatically "expanded" from the on-disk
+binary representation to a live sqlite database using
+`sqlite3_deserialize()`.  Conversely if and when it is written to a
+table, it is serialized and "TOASTed" into a binary flat
+representation with `sqlite3_serialize()`.
 
 ## Modifying SQLite Objects
 
 This new sqlite instance can now be inserted into a table and
-manipulated with the `sqlite()` function, for example:
+manipulated with the `sqlite_exec()` function, for example:
 
 ```
 CREATE TABLE customer (

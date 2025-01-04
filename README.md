@@ -1,11 +1,19 @@
 # postgres-sqlite
 
 `postgres-sqlite` is a PostgreSQL extension that adds sqlite databases
-as a first class data type for sqlite databases.
+as a first class data type for Postgres databases.
 
 Using a combination of the Postgres "exapnded datum" API and the
-sqlite serialize/deserialize API, sqlite can be used to create and
-store small (up to 1GB) sqlite databases in postgres tables.
+sqlite3 serialize/deserialize API, postgres-sqlite can be used to
+create and store small (up to 1GB) sqlite databases in postgres tables
+very efficiently by taking advantage of compressed TOAST storage for
+sqlite's native serialization format.
+
+This is very useful for multitenancy, since these mini sqlite
+databases inside Postgres are completely isolated from the Postgres
+database around them, no special RLS policies, permissions, or other
+traditional complications of multitenancy are needed to keep isolated
+customer data in separate rows.
 
 ## Creating SQLite Databases
 
@@ -83,13 +91,15 @@ database.
 ## Querying SQLite Objects
 
 The `sqlite_query(db, query)` function is a Set Returning Function
-(SRF) that returns a record for each sqlite result row from the given
-query:
+(SRF) that `RETURNS SETOF RECORD` with a postgres row for each sqlite
+result row from the given sqlite query.  Using the standard 'AS'
+syntax these values can be mapped to table like Postgres results:
 
 ```
 SELECT * from sqlite_query(
-   (SELECT data FROM customer),
-  'SELECT rowid, key, value from user_config') AS (id integer, key text, value text);
+        (SELECT data FROM customer),
+        'SELECT rowid, key, value from user_config') 
+    AS (id integer, key text, value text);
 ┌────┬───────┬───────┐
 │ id │  key  │ value │
 ├────┼───────┼───────┤

@@ -6,9 +6,9 @@ as a first class data type for Postgres databases.
 Using a combination of the Postgres "exapnded datum" API and the
 sqlite3 serialize/deserialize API, postgres-sqlite can be used to
 create and store small (up to 1GB) sqlite databases in postgres tables
-very efficiently by taking advantage of compressed TOAST storage for
-sqlite's native serialization format. Accordingly, postgres-sqlite
-does not require any access to the server's filesytem, all databases
+very efficiently by taking advantage of compressed TOAST storage using
+sqlite's native serialization API. Accordingly, postgres-sqlite does
+not require any access to the server's filesytem, all sqlite databases
 are stored directly in Postgres tables.
 
 This is very useful for multitenancy, since these mini sqlite
@@ -48,6 +48,12 @@ SELECT 'CREATE TABLE user_config (key text, value text)'::sqlite;
 └──────────────────────────────────────────────────┘
 (1 row)
 ```
+
+Note that while you are seeing the SQL text representation of the
+sqlite object, it is stored internally in the database as a binary
+serialized representation of an in-memory sqlite database.  When the
+sqlite database is accessed, it is automatically "expanded" from the
+on-disk binary representation to a live sqlite database.
 
 ## Modifying SQLite Objects
 
@@ -89,12 +95,13 @@ UPDATE customer SET data = sqlite_exec(data, $$INSERT INTO user_config VALUES ('
 
 Notice how the `DEFAULT` value for the sqlite column in the new table
 will initialize a new sqlite database into that column.  All new rows
-in `customer` will contain a `foo` table if no default overriding
-value is provided on insert as shown above.
+in `customer` will contain contain a sqlite database named `data`
+which in turn contains a sqlite table `user_config`.
 
 The `sqlite_exec(db, query)` function takes a sqlite database and a
 query as an argument, executes that query and returns the same
-database.
+database, so this can be used for chaining updates to the same
+database through multiple calls.
 
 ## Querying SQLite Objects
 

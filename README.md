@@ -17,6 +17,12 @@ database around them, no special RLS policies, permissions, or other
 traditional complications of multitenancy are needed to keep isolated
 customer data in separate rows.
 
+Another useful use case is using this tool in conjunction with the
+official sqlite-wasm build to store client side data on your server.
+To synchronize client and server data simply exchange the objects as
+the native SQL text format, or the standard sqlite binary format with
+sqlite_serialize()/sqlite_deserialize().
+
 ## Creating SQLite Databases
 
 The extension can be installed into a Postgres in the normal way:
@@ -111,6 +117,33 @@ SELECT * from sqlite_query(
 ```
 
 postgres-sqlite support integers, floats and text.
+
+## Serialize/Deserialize
+
+postgres-sqlite has support for serializing and deserializing sqlite
+databases as `bytea` byte array types.
+
+```
+SELECT pg_typeof(sqlite_serialize('create table foo (x)'::sqlite));
+┌───────────┐
+│ pg_typeof │
+├───────────┤
+│ bytea     │
+└───────────┘
+(1 row)
+
+SELECT sqlite_deserialize(sqlite_serialize('create table foo (x)'::sqlite));
+┌──────────────────────────┐
+│    sqlite_deserialize    │
+├──────────────────────────┤
+│ PRAGMA foreign_keys=OFF;↵│
+│ BEGIN TRANSACTION;      ↵│
+│ CREATE TABLE foo (x);   ↵│
+│ COMMIT;                 ↵│
+│                          │
+└──────────────────────────┘
+(1 row)
+```
 
 ## How it Works
 

@@ -118,7 +118,9 @@ API](https://www.postgresql.org/docs/current/xtypes.html#XTYPES-TOAST)
 that will "expand" a flat value into a more efficient in-memory
 representation (in this case, a live in-memory sqlite db deserialized
 from TOAST storage) and "flatten" the expanded object back into TOAST
-when it's time to write it to the database.
+when it's time to write it to the database.  The
+sqlite3_serialize/deserialize API is used to store the sqlite database
+in its native compact binary storage format inside Postgres.
 
 By expanding a serialized "flat" sqlite database into an in-memory
 object, this datum copying just copies a single pointer to the

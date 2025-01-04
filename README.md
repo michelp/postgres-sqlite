@@ -18,9 +18,10 @@ within PostgreSQL tables.
 `postgres-sqlite` simplifies multitenancy by embedding isolated SQLite
 databases directly into PostgreSQL. Each SQLite database is entirely
 independent from its surrounding PostgreSQL environment, eliminating
-the need for complex RLS policies, permissions, or other traditional
-multitenancy mechanisms. This allows customer data to be securely
-stored in separate rows without additional configuration.
+the need for complex RLS policies, permissions, alternate database in
+a cluster, or other traditional multitenancy mechanisms. This allows
+user data to be securely stored in separate rows without additional
+configuration.
 
 #### Client-Server Synchronization
 Another powerful use case is pairing `postgres-sqlite` with the
@@ -89,7 +90,9 @@ INSERT INTO customer (name) VALUES ('bob') RETURNING *;
 └────┴──────┴──────────────────────────────────────────────────┘
 (1 row)
 
-UPDATE customer SET data = sqlite_exec(data, $$INSERT INTO user_config VALUES ('color', 'blue')$$) RETURNING *;
+UPDATE customer
+    SET data = sqlite_exec(data, $$INSERT INTO user_config VALUES ('color', 'blue')$$)
+    RETURNING *;
 ┌────┬──────┬──────────────────────────────────────────────────────────────────────┐
 │ id │ name │                                 data                                 │
 ├────┼──────┼──────────────────────────────────────────────────────────────────────┤
@@ -123,7 +126,7 @@ syntax these values can be mapped to table like Postgres results:
 ```
 SELECT * from sqlite_query(
         (SELECT data FROM customer),
-        'SELECT rowid, key, value from user_config') 
+        'SELECT rowid, key, value from user_config')
     AS (id integer, key text, value text);
 ┌────┬───────┬───────┐
 │ id │  key  │ value │
@@ -141,15 +144,20 @@ postgres-sqlite has support for serializing and deserializing sqlite
 databases as `bytea` byte array types.
 
 ```
-SELECT pg_typeof(sqlite_serialize('create table foo (x)'::sqlite));
+SELECT pg_typeof(sqlite_serialize('create table foo (x)'));
 ┌───────────┐
 │ pg_typeof │
 ├───────────┤
 │ bytea     │
 └───────────┘
 (1 row)
+```
 
-SELECT sqlite_deserialize(sqlite_serialize('create table foo (x)'::sqlite));
+`sqlite_deserialize` takes a `bytea` representation of the database
+and expands it into sqlite object:
+
+```
+SELECT sqlite_deserialize(sqlite_serialize('create table foo (x)'));
 ┌──────────────────────────┐
 │    sqlite_deserialize    │
 ├──────────────────────────┤

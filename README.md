@@ -7,7 +7,9 @@ Using a combination of the Postgres "exapnded datum" API and the
 sqlite3 serialize/deserialize API, postgres-sqlite can be used to
 create and store small (up to 1GB) sqlite databases in postgres tables
 very efficiently by taking advantage of compressed TOAST storage for
-sqlite's native serialization format.
+sqlite's native serialization format. Accordingly, postgres-sqlite
+does not require any access to the server's filesytem, all databases
+are stored directly in Postgres tables.
 
 This is very useful for multitenancy, since these mini sqlite
 databases inside Postgres are completely isolated from the Postgres

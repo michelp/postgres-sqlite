@@ -2,8 +2,14 @@
 #define SQLITE_H
 
 #include "postgres.h"
+#include "fmgr.h"
 #include "funcapi.h"
 #include "utils/expandeddatum.h"
+#include "utils/lsyscache.h"
+#include "utils/builtins.h"
+#include "lib/stringinfo.h"
+
+#include <sqlite3.h>
 
 /* ID for debugging crosschecks */
 #define sqlite_MAGIC 889276513
@@ -27,30 +33,22 @@ typedef struct sqlite_FlatSqlite {
 typedef struct sqlite_Sqlite  {
 	ExpandedObjectHeader hdr;
 	int em_magic;
-	Size flat_size;
 	sqlite3 *db;
+	Size flat_size;
+	unsigned char *flat_data;
 } sqlite_Sqlite;
-
-/* Callback function for freeing sqlite arrays. */
-static void
-context_callback_sqlite_free(void*);
-
-/* Expanded Object Header "methods" for flattening for storage */
-static Size
-sqlite_get_flat_size(ExpandedObjectHeader *eohptr);
-
-static void
-sqlite_flatten_into(ExpandedObjectHeader *eohptr,
-				   void *result, Size allocated_size);
-
-static const ExpandedObjectMethods sqlite_methods = {
-	sqlite_get_flat_size,
-	sqlite_flatten_into
-};
 
 /* Create a new sqlite datum. */
 sqlite_Sqlite *
-new_expanded_sqlite(sqlite_FlatSqlite* flat, MemoryContext parentcontext);
+new_expanded_sqlite(sqlite_FlatSqlite* flat, MemoryContext parentcontext, sqlite3 *existing_db);
+
+int sqlite3_db_dump(
+	sqlite3 *db,
+	const char *zSchema,
+	const char *zTable,
+	int (*xCallback)(const char*,void*),
+	void *pArg
+	);
 
 /* Helper function that either detoasts or expands. */
 sqlite_Sqlite *DatumGetSqlite(Datum d);
@@ -65,22 +63,18 @@ sqlite_Sqlite *DatumGetSqlite(Datum d);
 #define SQLITE_OVERHEAD() MAXALIGN(sizeof(sqlite_FlatSqlite))
 
 /* Helper macro to get pointer to beginning of sqlite data. */
-#define SQLITE_DATA(a) ((int64_t *)(((char *) (a)) + SQLITE_OVERHEAD()))
+#define SQLITE_DATA(a) (((unsigned char *) (a)) + SQLITE_OVERHEAD())
 
 /* Help macro to cast generic Datum header pointer to expanded Sqlite */
 #define SqliteGetEOHP(d) (sqlite_Sqlite *) DatumGetEOHP(d);
 
 /* Public API functions */
 
-PG_FUNCTION_INFO_V1(sqlite);
-PG_FUNCTION_INFO_V1(sqlite_in);
-PG_FUNCTION_INFO_V1(sqlite_out);
-PG_FUNCTION_INFO_V1(sqlite_info);
-
 void
 _PG_init(void);
 
 #endif /* SQLITE_H */
+
 /* Local Variables: */
 /* mode: c */
 /* c-file-style: "postgresql" */

@@ -7,7 +7,7 @@ Using a combination of the Postgres "exapnded datum" API and the
 sqlite serialize/deserialize API, sqlite can be used to create and
 store small (up to 1GB) sqlite databases inline with Postgres data.
 
-# Creating SQLite Databases
+## Creating SQLite Databases
 
 The extension can be installed into a Postgres in the normal way:
 
@@ -26,20 +26,20 @@ be created by casting an initialization string to the `sqlite` type:
 An empty database can be created with an empty string like
 `''::sqlite`.
 
-# Modifying SQLite Objects
+## Modifying SQLite Objects
 
 This new sqlite instance can now be inserted into a table and
 manipulated with the `sqlite()` function, for example:
 
 ```
 CREATE TABLE customer (
-    id bigint PRIMARY KEY,
+    id bigserial PRIMARY KEY,
     name text NOT NULL,
     data sqlite DEFAULT 'CREATE TABLE foo (bar text);'
     );
     
-INSERT INTO customer_data (name) VALUES ('bob');
-UPDATE customer_data SET data = sqlite_exec(data, $$INSERT INTO foo (bar) VALUES ('bing')$$);
+INSERT INTO customer (name) VALUES ('bob');
+UPDATE customer SET data = sqlite_exec(data, $$INSERT INTO foo (bar) VALUES ('bing')$$);
 ```
 
 Notice how the `DEFAULT` value for the sqlite column in the new table
@@ -95,33 +95,3 @@ sqlite database into an in-memory object, this datum copying just
 copies a single pointer to the database around during a sql command
 instead of the entire flattened object.
 
-# Is this related to pglite-fusion?
-
-`pglite-fusion` i an extension that acomplishes similar usability
-goals.  It is IMO a great idea, obviously since I have implemented the
-same idea here, but the implementation has some issues:
-
-  - It does not use the expanded datum API or the sqlite3
-    serialize/deserialize API but rather reads/write a temp file on the
-    server filesystem for every database operation.  This is not only
-    inefficient but also a big no-no for cloud hosting providers.
-  
-  - Because it does not read/write sqlite data into the Postgres
-    database directly, but rather into server filesystem tempfiles,
-    the data is not WAL logged and disconnected from the same data
-    visibility rules as Postgres.
-    
-  - Querying it does not return a set of record rows, but rather a
-    JSON formatted row.
-    
-  - It provides several functions for accessing type specific column
-    values from a query, where this extension uses a Set Returning
-    Function that adapts each returned record tuple to be the exact
-    schema of the sqlite query.  This automatically type casts result
-    values to their correct Postgres type.
-
-  - pglite-fusion is implemented in Rust, but the expanded datum api
-    and the sqlite serialization API are straight, simple C functions
-    passing serialization pointers to each other.  Maybe the same
-    solution can be done in Rust, but I had no need of that
-    hypothesis.

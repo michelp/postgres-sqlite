@@ -4,7 +4,8 @@ DB_HOST="sqlite-test-db"
 DB_NAME="postgres"
 SU="postgres"
 EXEC="docker exec $DB_HOST"
-EXECIT="docker exec -it $DB_HOST"
+EXECIT="docker exec --user postgres -it $DB_HOST"
+export BUILDKIT_PROGRESS=plain
 
 echo force rm previous container
 docker rm -f sqlite-test
@@ -12,34 +13,21 @@ docker rm -f sqlite-test
 set -e
 
 echo building test image
-docker build . -t sqlite/test
+docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) . -t sqlite/test
 
 echo running test container
-docker run -v $(pwd)/tests/:/tests --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -d --name "$DB_HOST" sqlite/test
+docker run -e POSTGRES_HOST_AUTH_METHOD=trust -v $(pwd)/tests/:/tests --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -d --name "$DB_HOST" sqlite/test
 
-$EXECIT pg_ctl start
-# $EXEC make clean
-# $EXEC make install
-
-echo waiting for database to accept connections
-until
-    $EXEC \
-	    psql -o /dev/null -t -q -U "$SU" \
-        -c 'select pg_sleep(1)' \
-	    2>/dev/null;
-do sleep 1;
-done
-
+sleep 3
 
 if [ $# -eq 0 ]
 then
     echo running tests
-    $EXEC tmux new-session -d -s sqlite
-    $EXECIT tmux attach-session -t sqlite
+    $EXECIT psql
 else
     echo running repl
-    $EXEC tmux new-session -d -s sqlite $*
-    $EXECIT tmux attach-session -t sqlite
+    $EXEC
+    $EXECIT $*
 fi
 
 echo destroying test container and image

@@ -20,3 +20,23 @@ CREATE TYPE sqlite (
     storage = 'extended',
     internallength = -1
 );
+
+CREATE FUNCTION sqlite_query(sqlite, text)
+RETURNS SETOF RECORD
+AS '$libdir/sqlite', 'sqlite_query'
+LANGUAGE C STRICT;
+
+CREATE FUNCTION sqlite_exec(sqlite, text)
+RETURNS sqlite
+AS '$libdir/sqlite', 'sqlite_exec'
+LANGUAGE C STRICT;
+
+CREATE FUNCTION sqlite_serialize(sqlite)
+RETURNS bytea
+AS '$libdir/sqlite', 'sqlite_serialize'
+LANGUAGE C STRICT;
+
+CREATE FUNCTION sqlite_deserialize(bytea)
+RETURNS sqlite
+AS '$libdir/sqlite', 'sqlite_deserialize'
+LANGUAGE C STRICT;

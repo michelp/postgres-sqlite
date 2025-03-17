@@ -1,5 +1,8 @@
 # postgres-sqlite
 
+> [!NOTE]
+> Development of this idea has moved to [Omnigres](https://docs.omnigres.org/omni_sqlite/sqlite/).
+
 `postgres-sqlite` is a PostgreSQL extension that introduces SQLite
 databases as a first-class data type within PostgreSQL.
 

@@ -126,7 +126,7 @@ new_expanded_sqlite(sqlite_FlatSqlite *flat, MemoryContext parentcontext, sqlite
 
 	if (flat != NULL)
 	{
-		flat_size = VARSIZE_ANY_EXHDR(flat);
+		flat_size = VARSIZE(flat) - SQLITE_OVERHEAD();
 		flat_data = SQLITE_DATA(flat);
 		sqlite3_deserialize(innerdb, "main", flat_data, flat_size, flat_size,
 							SQLITE_DESERIALIZE_RESIZEABLE);
